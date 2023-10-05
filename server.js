@@ -10,9 +10,6 @@ app.use(cors({ origin: "*" }));
 
 console.log(process.env.MONGO_URI);
 console.log(process.env.PORT);
-const jobsSpreadsheetId = "156oHYxDbV0vsJGF-zltaVzT-y_VA5YSxdgpJH-NCJgo";
-
-console.log("test " + process.env.creds);
 
 // //Create auth instance
 const auth = new google.auth.GoogleAuth({
@@ -81,7 +78,7 @@ const fetchLinenAndNapkinData = async (napkin = false) => {
   //Read rows from spreadsheet "Linen"
   const getRows = await googleSheets.spreadsheets.values.get({
     auth,
-    spreadsheetId: jobsSpreadsheetId,
+    spreadsheetId: process.env.JOBS_SPREADSHEET_ID,
     range: linenQuery,
   });
 
