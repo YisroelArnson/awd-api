@@ -1,0 +1,73 @@
+GET http://localhost:3001/jobs
+Content-Type: application/json
+
+
+###
+
+POST http://localhost:3001/jobs
+Content-Type: application/json
+
+{
+    "job_id": "6",
+    "client_name": "Friedman",
+    "date": "12/5/2022",
+    "location": "Beth Tfiloh",
+    "job_type": "linen",
+    "linen": [{"unique_id": "bumbee_white_round", "count": 15}, {"unique_id": "treetrunk_silver_round", "count": 10}],
+    "napkins": [{"unique_id": "ivory_plain", "count": 220}],
+    "flowers": false,
+    "bouqette": false,
+    "notes": "These are notes",
+    "paid": false,
+    "sent_invoice": false,
+    "client_email": "howard@gmail.com",
+    "client_type": "vendor",
+    "invoice_url": "google.com",
+    "linen_picked_up": false
+}
+
+###
+DELETE http://localhost:3001/jobs/638e3fa9c7e2f40c509620e1
+###
+DELETE http://localhost:3001/jobs
+###
+
+PUT http://localhost:3001/jobs/638e4040dbcad81bd7eea29d
+Content-Type: application/json
+
+{
+    "job_id": "3",
+    "name": "Yisroel",
+    "date": "11/26/2022"
+}
+
+
+###
+# Send in the data that you want to update. Whatever you don't
+# Send in will just be left as is in the sheet.
+POST http://localhost:3001/jobs/2
+Content-Type: application/json
+
+{
+    "name": "Higher",
+    "date": "11/15/2022",
+    "location": "Sideman",
+    "type_of_event": "Wedding",
+    "linen": "[{Bumbee: 1, shape: 'round'}, {swirl: 13, shape: 'round'}]",
+    "flowers": "TRUE",
+    "Bouqette": "TRUE",
+    "Notes": "Client really want white flowers for the bouqete with a little bit of green. Just a bit. Also drop off satursday night",
+    "paid": "TRUE",
+    "send_invoice": "TRUE",
+    "client_email": "Weis@gmail.com",
+    "type_of_client": "client"
+}
+
+
+###
+POST http://localhost:3001/invoice
+Content-Type: application/json
+
+{      
+    "title": "invoice_5"
+}
