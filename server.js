@@ -17,6 +17,11 @@ const auth = new google.auth.GoogleAuth({
   scopes: [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://mail.google.com",
+    "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.send",
   ],
 });
 
@@ -110,7 +115,7 @@ const updateDataOfInvoice = async (job) => {
         },
         {
           range: "Sheet1!E34",
-          values: [[job.deposit_amount_recieved]],
+          values: [[-job.deposit_amount_recieved]],
         },
       ],
       includeValuesInResponse: true,
@@ -166,6 +171,24 @@ const updateDataOfInvoice = async (job) => {
       {
         range: "Sheet1!D" + i,
         values: [[napkinInfo.price]],
+      }
+    );
+    i++;
+  });
+
+  job.items.forEach((item) => {
+    request.resource.data.push(
+      {
+        range: "Sheet1!A" + i,
+        values: [[item.count]],
+      },
+      {
+        range: "Sheet1!B" + i,
+        values: [[item.item_name]],
+      },
+      {
+        range: "Sheet1!D" + i,
+        values: [[item.price]],
       }
     );
     i++;
@@ -227,6 +250,16 @@ const pruneEmptyLinenAndNapkins = (items) => {
   return temp;
 };
 
+const pruneEmptyItems = (items) => {
+  let temp = [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].item_name != "" && items[i].count != 0) {
+      temp.push(items[i]);
+    }
+  }
+  return temp;
+};
+
 // ------------------------------ REQUEST HANDLERS ------------------------------------------------
 // /
 app.get("/", (req, res) => {
@@ -251,6 +284,7 @@ app.post("/jobs", async (req, res) => {
       console.log(greatestId);
     }
   }
+
   const job = new Job({
     job_id: (parseInt(greatestId) + 1).toString(),
     client_name: req.body.client_name,
@@ -259,6 +293,7 @@ app.post("/jobs", async (req, res) => {
     job_type: req.body.job_type,
     linen: await pruneEmptyLinenAndNapkins(req.body.linen),
     napkins: await pruneEmptyLinenAndNapkins(req.body.napkins),
+    items: await pruneEmptyItems(req.body.items),
     flowers: req.body.flowers,
     bouqette: req.body.bouqette,
     notes: req.body.notes,
@@ -266,6 +301,7 @@ app.post("/jobs", async (req, res) => {
     sent_invoice: req.body.sent_invoice,
     order_flowers: req.body.order_flowers,
     client_email: req.body.client_email,
+    client_phone_number: req.body.client_phone_number,
     client_type: req.body.client_type,
     invoice_url: req.body.invoice_url,
     linen_picked_up: req.body.linen_picked_up,
@@ -299,6 +335,7 @@ app.put("/jobs/:id", async (req, res) => {
       ...req.body,
       linen: pruneEmptyLinenAndNapkins(req.body.linen),
       napkins: pruneEmptyLinenAndNapkins(req.body.napkins),
+      items: pruneEmptyItems(req.body.items),
     },
     {
       new: true,
@@ -360,6 +397,53 @@ app.post("/invoice", async (req, res) => {
 
   console.log("Invoice Creation Status: " + resp.status);
   res.sendStatus(resp.status);
+});
+
+app.post("/invoice/send", async (req, res) => {
+  try {
+    const jobObject = await Job.findOne({ _id: req.body.id });
+
+    // Ensure you have the file ID (copiedFileId) of the invoice file.
+    // Replace 'your-invoice-file-id' with the actual file ID.
+    //get the last item from the list jobObject.invoice_ids
+    const invoiceFileId =
+      jobObject.invoice_ids[jobObject.invoice_ids.length - 1];
+    console.log(invoiceFileId);
+
+    // Specify the email address to which you want to grant viewing permission.
+    const emailToGrantPermission = req.body.email;
+
+    const drive_service = google.drive({ version: "v3", auth });
+
+    // Define the permission parameters.
+    const permissionParams = {
+      fileId: invoiceFileId,
+      resource: {
+        type: "user",
+        role: "reader",
+        emailAddress: emailToGrantPermission,
+        emailMessage:
+          "Invoice for " +
+          jobObject.client_name +
+          " on " +
+          jobObject.date +
+          " at " +
+          jobObject.location +
+          ".",
+      },
+    };
+
+    // Create a new permission for the specified email address.
+    const permission = await drive_service.permissions.create(permissionParams);
+
+    console.log(`Permission ID: ${permission.data.id}`);
+
+    // Send a response indicating that the permission was granted successfully.
+    res.status(200).json({ message: "Permission granted successfully" });
+  } catch (error) {
+    console.error("Error granting permission:", error);
+    res.status(500).json({ error: "Permission granting failed" });
+  }
 });
 
 app.listen(process.env.PORT, () =>
